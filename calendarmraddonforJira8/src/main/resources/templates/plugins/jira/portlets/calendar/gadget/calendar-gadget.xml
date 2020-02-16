@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<Module>
+    <ModulePrefs title="__MSG_gadget.issuescalendar.title__" directory_title="__MSG_gadget.issuescalendar.title__" description="__MSG_gadget.issuescalendar.description__"
+                 author="Atlassian" author_affiliation="Atlassian"
+                 author_location="Sydney, Australia" height="300"
+                 screenshot='#staticResourceUrl("com.atlassian.jira.ext.calendar:issuescalendar-gadget", "calendar-screenshot.png")'
+                 thumbnail='#staticResourceUrl("com.atlassian.jira.ext.calendar:issuescalendar-gadget", "calendar-thumb.png")'>
+        <Optional feature="gadget-directory">
+            <Param name="categories">
+                JIRA
+            </Param>
+        </Optional>
+        <Require feature="setprefs" />
+        <Require feature="views" />
+        <Require feature="dynamic-height"/>
+        <Require feature="oauthpopup" />
+        <Optional feature="atlassian.util" />
+        <Require feature="settitle"/>
+        #oauth
+        #supportedLocales("gadget.common,portlet.issuescalendar,gadget.issuescalendar")
+    </ModulePrefs>
+    <UserPref name="isConfigured" datatype="hidden" default_value="false" />
+    <UserPref name="projectOrFilterId" datatype="hidden" />
+    <UserPref name="dateFieldName" datatype="hidden" />
+    <UserPref name="displayVersions" datatype="hidden" />
+    <UserPref name="numOfIssueIcons" datatype="hidden" default_value="10" />
+    <UserPref name="refresh" datatype="hidden" default_value="false" />
+    <Content type="html">
+<![CDATA[
+#requireResource("com.atlassian.jira.gadgets:autocomplete")
+#requireResource("com.atlassian.jira.ext.calendar:issues-calendar-resource")
+#includeResources()
+
+<style type="text/css">
+    .view {padding: 8px;}
+</style>
+
+<script>
+(function() {
+    AJS.Gadget({
+        baseUrl: "__ATLASSIAN_BASE_URL__",
+        useOauth: "/rest/gadget/1.0/currentUser",
+        config: {
+            descriptor: function (args) {
+                var gadget = this;
+                var searchParam ;
+                if (/^jql-/.test(this.getPref("projectOrFilterId"))){
+                    searchParam =
+                    {
+                        userpref: "projectOrFilterId",
+                        type: "hidden",
+                        value: gadgets.util.unescapeString(this.getPref("projectOrFilterId"))
+                    };
+                }
+                else{
+                    searchParam = AJS.gadget.fields.projectOrFilterPicker(gadget, "projectOrFilterId");
+                }
+
+                return {
+                    action: "/rest/calendar-plugin/1.0/calendar/htmlcalendar/config/validate",
+                    theme: (function() { return gadgets.window.getViewportDimensions().width < 500 ? "top-label" : "long-label"; })(),
+                    fields: [
+                        AJS.$.extend(true, {}, searchParam, {
+                            description: gadget.getMsg("portlet.issuescalendar.field.projectOrFilter.description")
+                        }),
+                        {
+                            userpref: "dateFieldName",
+                            label: gadget.getMsg("portlet.issuescalendar.field.dateFieldName.name"),
+                            description: gadget.getMsg("portlet.issuescalendar.field.dateFieldName.description"),
+                            type: "select",
+                            selected: gadget.getPref("dateFieldName"),
+                            options: args.dateFieldName.dateField
+                        },
+                        {
+                            userpref: "displayVersions",
+                            label: gadget.getMsg("portlet.issuescalendar.field.displayVersions.name"),
+                            description: gadget.getMsg("portlet.issuescalendar.field.displayVersions.description"),
+                            type: "select",
+                            selected: gadget.getPref("displayVersions"),
+                            options: [
+                                {
+                                    label: gadget.getMsg("gadget.common.yes"),
+                                    value: "true"
+                                },
+                                {
+                                    label: gadget.getMsg("gadget.common.no"),
+                                    value: "false"
+                                }
+                            ]
+                        },
+                        {
+                            userpref: "numOfIssueIcons",
+                            label: gadget.getMsg("portlet.issuescalendar.field.numOfIssueIcons.name"),
+                            description: gadget.getMsg("portlet.issuescalendar.field.numOfIssueIcons.description"),
+                            type: "text",
+                            value: (!gadget.getPref("numOfIssueIcons")) ? "10" : gadget.getPref("numOfIssueIcons")
+                        },
+                        AJS.gadget.fields.nowConfigured()
+                    ]
+                };
+            },
+            args : [{
+                key: "dateFieldName",
+                ajaxOptions: "/rest/calendar-plugin/1.0/calendar/htmlcalendar/config/datefields"
+            }]
+        },
+        view: {
+            enableReload: true,
+            onResizeReload: false,
+            template: function(args) {
+                var gadget = this;
+
+                while (!AJS.JiraCalendarPlugin) {
+                    ; /* I don't know how to explain this but at some point JS became multithreading */
+                }
+
+                gadget.getView().empty().html(args.calendarHtml);
+
+                AJS.$(".issues-calendar-container").each(function() {
+                    AJS.JiraCalendarPlugin.initCalendar(AJS.$(this));
+                });
+
+                gadget.projectOrFilterName = AJS.$("div.issues-calendar-container fieldset input[name='searchName']").val();
+                gadgets.window.setTitle(AJS.format("__MSG_gadget.issuescalendar.title.specific__", gadget.projectOrFilterName));
+            },
+            args: [
+                {
+                    key: "calendarHtml",
+                    ajaxOptions: function() {
+                        var _data = {
+                            dateFieldName: this.getPref("dateFieldName"),
+                            displayVersions: this.getPref("displayVersions"),
+                            numOfIssueIcons: this.getPref("numOfIssueIcons"),
+                            context: "gadget",
+                            portletId: __MODULE_ID__,
+                            includeContainer: "true"
+                        };
+
+                        var projectOrFilterId = gadgets.util.unescapeString(this.getPref("projectOrFilterId"));
+
+                        if (/^filter-/.test(projectOrFilterId))
+                            _data["searchRequestId"] = projectOrFilterId.substring(7);
+                        if (/^project-/.test(projectOrFilterId))
+                            _data["projectId"] = projectOrFilterId.substring(8);
+
+                        return {
+                            type: "GET",
+                            url: "/rest/calendar-plugin/1.0/calendar/htmlcalendar.html",
+                            dataType: "html",
+                            data: _data
+                        };
+                    }
+                }
+            ]
+        }
+    });
+})();
+</script>
+        ]]>
+    </Content>
+</Module>

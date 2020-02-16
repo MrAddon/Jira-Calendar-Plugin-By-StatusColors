@@ -1,0 +1,25 @@
+#if ($config.Context && $config.Context != "gadget")
+    <script type="text/javascript" src="$webResourceManager.getStaticPluginResource('com.atlassian.jira.ext.calendar:issues-calendar-resource', 'issuescalendar.js')"></script>
+#end
+<link type="text/css" rel="stylesheet" href="$webResourceManager.getStaticPluginResource('com.atlassian.jira.ext.calendar:issues-calendar-resource', 'issuescalendar.css')" media="all">
+
+<div class="issues-calendar-container">
+    <fieldset class="display: none;">
+        #if ($config.PortletId)
+            <input type="hidden" class="issues-calendar-param" name="portletId" value="${config.PortletId}">
+        #end
+        <input type="hidden" class="issues-calendar-lnf-week" name="weekendCssClasses" value="${i18n.getText('portlet.issuecalendar.weekendClasses')}">
+        <input type="hidden" class="issues-calendar-lnf-week" name="weekdayCssClasses" value="${i18n.getText('portlet.issuecalendar.weekdayClasses')}">
+        #foreach($priority in $priorities)
+            #if ($priority.statusColor.startsWith("#"))
+                #set ($priorityColor = $priority.statusColor)
+            #else
+                #set ($priorityColor = "#${priority.statusColor}")
+            #end
+            <input type="hidden" class="issues-calendar-lnf-priority" name="priority-${priority.id}" value="$priorityColor">
+        #end
+        <input type="hidden" class="issues-calendar-param" name="contextPath" value="${requestContext.canonicalBaseUrl}">
+        <input type="hidden" class="issues-calendar-param" name="searchName" value="$textutils.htmlEncode( $calSearch.SearchName )">
+    </fieldset>
+    <div class="issues-calendar">#parse("templates/plugins/jira/portlets/calendar/calendar.vm")</div>
+</div>

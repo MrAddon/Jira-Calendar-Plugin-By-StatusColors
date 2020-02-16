@@ -1,0 +1,128 @@
+#macro(searchLinkHref)
+    #if($config.ProjectId)
+        ${requestContext.canonicalBaseUrl}/secure/BrowseProject.jspa?id=${config.ProjectId}
+    #else
+        ${requestContext.canonicalBaseUrl}/secure/IssueNavigator.jspa?mode=hide&requestId=${config.FilterId}
+    #end
+#end
+
+#macro(rowClass $row)
+    #if(($row % 2) == 0)
+        rowAlternate
+    #else
+        rowNormal
+    #end
+#end
+
+#macro(dayStyleClass $day)
+    #if($day.MonthOfYear == $month.MonthOfYear) dayOfWeek-${day.DayOfWeek} #else otherMonth #end #if($month.isSameDay($day.Today, $todayCal)) today #end
+#end
+
+#macro(trimText $text $maxLength)
+    #if($text)
+        $textutils.trimToEndingChar($textutils.htmlEncode($text), $maxLength)#if($text.length() > $maxLength)&hellip;#end
+    #end
+#end
+
+#macro(displayVersionsOn $displayVersions)
+    #if($displayVersions)
+        <span class="displayVersionsOn">$i18n.getText("portlet.issuecalendar.versionsOn")</span>
+    #else
+        <a href="#" class="issues-calendar-version-toggle">$i18n.getText("portlet.issuecalendar.versionsOn")</a>
+    #end
+#end
+
+#macro(displayVersionsOff $displayVersions)
+    #if($displayVersions)
+        <a href="#"  class="issues-calendar-version-toggle">$i18n.getText("portlet.issuecalendar.versionsOff")</a>
+    #else
+        <span class="displayVersionsOff">$i18n.getText("portlet.issuecalendar.versionsOff")</span>
+    #end
+#end
+
+<fieldset style="display: none">
+    <input type="hidden" class="issues-calendar-param" name="${searchType}" value="${id}">
+    <input type="hidden" class="issues-calendar-param" name="month" value="${displayMonthStr}">
+    #if ($config.PortletId)
+        <input type="hidden" class="issues-calendar-param" name="portletId" value="${config.PortletId}">
+    #end
+    <input type="hidden" class="issues-calendar-param" name="dateFieldName" value="$textutils.htmlEncode( $config.DateFieldName )">
+    <input type="hidden" class="issues-calendar-param" name="displayVersions" value="${config.DisplayVersions}">
+    <input type="hidden" class="issues-calendar-param" name="numOfIssueIcons" value="${config.NumOfIssueIcons}">
+    <input type="hidden" class="issues-calendar-param" name="context" value="$textutils.htmlEncode( $config.Context )">
+
+    <!-- Begin dynamic params -->
+    <input type="hidden" class="issues-calendar-param" name="previousMonth" value="${previousMonthStr}">
+    <input type="hidden" class="issues-calendar-param" name="nextMonth" value="${nextMonthStr}">
+    <input type="hidden" class="issues-calendar-param" name="today" value="${todayMonthStr}">
+</fieldset>
+
+#if(!$errorKey)
+    <div class="issues-calendar-title">
+        <span class="issues-calendar-project-info">
+            <strong><a href="${requestContext.canonicalBaseUrl}/secure/IssueNavigator.jspa${calSearch.queryString}" class="issues-calendar-search">${textutils.htmlEncode($calSearch.SearchName)}</a></strong> (${textutils.htmlEncode($calSearch.dateFieldProvider.i18nDateFieldName)})<br/>
+        </span>
+        <strong>$i18n.getText("portlet.issuecalendar.month", $month.MonthOfYear) $i18n.getText("portlet.issuecalendar.year", $month.MonthStartDate)</strong>
+    </div>
+    <form class="aui calendar-navigation-wrapper">
+    <div class="aui-group calendar-navigation">
+        <div class="aui-item">
+            <div class="aui-buttons">
+                <a href="#" class="button aui-button issues-calendar-previous">$i18n.getText("portlet.issuecalendar.month", $month.PreviousMonthOfYear)</a>
+            </div>
+        </div>
+        <div class="aui-item">
+            <div class="aui-buttons">
+                <a href="#" class="button aui-button issues-calendar-next">$i18n.getText("portlet.issuecalendar.month", $month.NextMonthOfYear)</a>
+            </div>
+        </div>
+    </div>
+    </form>
+    <table class="tableLayout" border="0" cellpadding="0" cellspacing="1" width="100%">
+        #foreach($week in $month.WeekEventList)
+        #if($week.WeekOfMonth == 0)
+        <tr>
+            #foreach($day in $week.DayList)
+            <td class="dayOfWeekTitle">$i18n.getText("portlet.issuecalendar.dayOfWeek", $day.DayOfWeek)</td>
+            #end
+        </tr>
+        #end
+        <tr class="rowNormal">
+            #foreach($day in $week.DayList)
+            <td width="14%" class="#dayStyleClass($day)" valign="top">
+                #parse("templates/plugins/jira/portlets/calendar/calendarday.vm")
+            </td>
+            #end
+        </tr>
+        #end
+    </table>
+    <div class="calendar-footer">
+        <div class="icalLink">
+            #if ( $config.DateFieldName )
+                #set ( $urlEncodedDateFieldName = $velocityhelper.urlencode( $config.DateFieldName ) )
+            #else
+                #set ( $urlEncodedDateFieldName = "" )
+            #end
+            <a href="$requestContext.canonicalBaseUrl/plugins/servlet/calendar?${searchType}=${id}&dateFieldName=${urlEncodedDateFieldName}&showVersions=${config.DisplayVersions}">$i18n.getText("portlet.issuecalendar.exportAsIcal")</a>
+        </div>
+
+        #if(${config.Context} == "projectTab")
+        $i18n.getText("portlet.issuecalendar.versions"): #displayVersionsOn(${config.DisplayVersions}) |
+        #displayVersionsOff(${config.DisplayVersions})
+        &nbsp;&nbsp;&nbsp;
+        #end
+        #if($todayMonthStr != $displayMonthStr)
+        $i18n.getText("portlet.issuecalendar.goto"): <a href="#" class="issues-calendar-today">$i18n.getText("portlet.issuecalendar.today")</a>
+        #end
+    </div>
+#else
+    <table border="0" cellpadding="3" cellspacing="1" width="100%">
+        <tr class="rowHeader">
+            <td class="rowHeader">$i18n.getText("portlet.issuescalendar.name")</td>
+        </tr>
+        <tr class="rowNormal">
+            <td>$i18n.getText($errorKey)</td>
+        </tr>
+    </table>
+#end
+
