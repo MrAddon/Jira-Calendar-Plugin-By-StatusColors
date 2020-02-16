@@ -1,0 +1,88 @@
+#macro(daySearchHref $day)
+${requestContext.canonicalBaseUrl}/secure/IssueNavigator.jspa?reset=true${searchService.getQueryString( $authcontext.user, $calSearch.getSearchRequestForDay( $day ).query )}
+#end
+
+#macro(dayStyleClass $day)
+    #if($day.MonthOfYear == $month.MonthOfYear)
+dayOfWeek-${day.DayOfWeek}
+    #else
+otherMonth
+    #end
+#end
+
+#macro(versionStatusSize16 $version)
+<span
+    #if(($version.isReleased()) && (!$version.isArchived()))
+            class="project-config-icon project-config-icon-version-released" title="$i18n.getText('portlet.issuescalendar.released')"
+    #elseif(($version.isReleased()) && ($version.isArchived()))
+            class="project-config-icon project-config-icon-version-released project-config-icon-version-archived" title="$i18n.getText('portlet.issuescalendar.releasedandarchived')"
+    #elseif((!$version.isReleased()) && (!$version.isArchived()))
+            class="project-config-icon" title="$i18n.getText('portlet.issuescalendar.unreleased')"
+    #elseif((!$version.isReleased()) && ($version.isArchived()))
+            class="project-config-icon project-config-icon-version-archived" title="$i18n.getText('portlet.issuescalendar.unreleasedandarchived')"
+    #end
+></span>#end
+
+#macro(trimText $text $maxLength)#if($text)
+    #set($properTextHTML = $textutils.htmlEncode($text))
+    #set($html = $textutils.trimToEndingChar($properTextHTML, $maxLength))
+$html#if($text.length() > $maxLength)&hellip;#end
+#end#end
+
+<div class="date" >$day.DayOfMonth</div>
+#if($day.NoOfIssues > 0)
+    <div class="issuesHeader" >$i18n.getText("portlet.issuecalendar.issuesInDay"): <a href="#daySearchHref(${day.TodayDate})">$day.NoOfIssues</a></div>
+    #if($config.NumOfIssueIcons.intValue() > 0)
+        <div class="issues">
+            #if($day.NoOfIssues > $config.NumOfIssueIcons.intValue())
+                #set($issuesToDisplay = $config.NumOfIssueIcons.intValue() - 1)
+            #else
+                #set($issuesToDisplay = $config.NumOfIssueIcons.intValue())
+            #end
+            #foreach($issue in ${day.getFirstXIssues(${issuesToDisplay})})<a href="${requestContext.canonicalBaseUrl}/browse/$issue.Key" class="issue" target="_parent"><span class="priority  #if ($issue.getStatus().getStatusCategory())priority-${issue.getStatus().getStatusCategory().getId()}#else priority-none #end" ><span class="dayPopup">
+                <div class="aui-inline-dialog" style="width:0px; left: 0px; top: 0px; display: block">
+                    <div class="contents aui-box-shadow" style="width: 300px; padding: 16px;">
+                        <span class="issueKey smaller-font">${issue.Key}</span>
+                        <span class="smaller-font">$textutils.htmlEncode($issue.Summary)</span>
+                        #if($issue.Description)
+                            <span class="description smaller-font">#trimText($issue.Description 150)</span>
+                        #end
+                    </div>
+                </div>
+            </span></span></a>#end
+            #if($day.NoOfIssues > $config.NumOfIssueIcons.intValue())
+                <a href="#daySearchHref(${day.TodayDate})" class="moreIssues" target="_parent">$i18n.getText("portlet.issuecalendar.moreIssues")</a>
+            #end
+        </div>
+    #else
+        <br />&nbsp;
+    #end
+#end
+
+#if(($config.DisplayVersions) && ($day.NoOfVersions > 0))
+    <div class="versions">
+        <div class="versionsTitle">$i18n.getText("portlet.issuecalendar.versionInDay"):</div>
+        #foreach( $version in $day.Versions)
+            <a href='${requestContext.canonicalBaseUrl}/browse/${version.project.key}/fixforversion/${version.Id}' class="version" target="_parent">
+                #versionStatusSize16($version)#trimText(${version.Name} 15)
+                <span class="dayPopup">
+                    <div class="aui-inline-dialog" style="left: 0px; top: 0px; display: block">
+                        <div class="contents aui-box-shadow" style="width: 300px; padding: 16px; word-wrap: break-word;">
+                            <p>$textutils.htmlEncode(${version.Name})
+                                #if(($version.Description) && ($version.Description.length() > 0))
+                                    <br />#trimText(${version.Description} 100)
+                                #end
+                            </p>
+                            <span class="smaller-font">$i18n.getText("portlet.issuecalendar.project"): <span class="issueKey">$version.project.key</span></span>
+                        </div>
+                    </div>
+                </span>
+            </a>
+        #end
+    </div>
+#end
+
+
+#if ($day.noOfIssues == 0  && ($day.noOfVersions == 0 || !$config.displayVersions))
+    <br />&nbsp;<br />&nbsp; <br />
+#end

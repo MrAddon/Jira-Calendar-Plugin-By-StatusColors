@@ -1,0 +1,67 @@
+<atlassian-plugin key="${atlassian.plugin.key}" name="${project.name}" pluginsVersion="2">
+    <plugin-info>
+        <description>${project.description}</description>
+        <version>${project.version}</version>
+        <application-version min="${atlassian.plugin.application.version.min}"/>
+        <vendor name="${project.organization.name}" url="${project.organization.url}"/>
+        <param name="atlassian-data-center-compatible">true</param>
+    </plugin-info>
+
+    <component key="searchServiceBridgeFactory" class="com.atlassian.jira.compatibility.factory.search.SearchServiceBridgeFactory"/>
+
+    <servlet name='Calendar Servlet' key='calendar' class='com.atlassian.jira.ext.calendar.ICalendarServlet'>
+        <description>Returns a basic i-cal file.</description>
+        <url-pattern>/calendar</url-pattern>
+    </servlet>
+
+    <resource type="i18n" name="i18n"
+              location="com.atlassian.jira.ext.calendar.issuescalendar"/>
+
+    <project-tabpanel key="issuecalendar-panel" name="Issue Calendar Panel"
+                      class="com.atlassian.jira.ext.calendar.CalendarProjectTabPanel">
+        <description key="projectpanel.issuecalendar.description">
+            A calendar-based display of the issues and versions in the project.
+        </description>
+        <label key="projectpanel.issuecalendar.label"/>
+        <!-- this is a number defining the order of all panels.
+The system panels are 10, 20, 30 and 40. -->
+        <order>50</order>
+        <!-- this template produces the HTML for the panel -->
+        <resource type="velocity" name="view"
+                  location="templates/plugins/jira/portlets/calendar/issuescalendar.vm"/>
+    </project-tabpanel>
+
+    <web-resource key="issues-calendar-resource" name="Calendar JavaScript">
+        <resource type="download" name="issuescalendar.js" location="com/atlassian/jira/ext/calendar/resources/js/issuescalendar.js"/>
+        <resource type="download" name="issuescalendar.css" location="com/atlassian/jira/ext/calendar/resources/css/issuescalendar.css"/>
+        <resource type="download" name="icon16-sprite.png" location="com/atlassian/jira/ext/calendar/resources/img/icon16-sprite.png"/>
+    </web-resource>
+
+    <rest key="calendarPluginRESTEndpoints" name="Calendar plugin REST endpoints" path="/calendar-plugin" version="1.0" description="REST endpoints for the JIRA Calendar Plugin." />
+
+    <resource type="download" name="calendar-screenshot.png" location="templates/plugins/jira/portlets/calendar/images/calendar-screenshot.png"/>
+    <resource type="download" name="calendar-thumb.png" location="templates/plugins/jira/portlets/calendar/images/calendar-thumb.png"/>
+
+    <gadget key="issuescalendar-gadget" name="Issues Calendar Gadget" location="templates/plugins/jira/portlets/calendar/gadget/calendar-gadget.xml">
+        <param name="roles-required">browse</param>
+    </gadget>
+
+    <web-resource key="tipDataProvider">
+        <dependency>com.atlassian.plugins.atlassian-plugins-webresource-plugin:data</dependency>
+
+        <data key="tip" class="com.atlassian.jira.ext.calendar.data.TipDataProvider" />
+    </web-resource>
+
+    <web-resource key="browse-project-tip">
+        <dependency>com.atlassian.jira.ext.calendar:tipDataProvider</dependency>
+
+        <transformation extension="js">
+            <transformer key="jsI18n"/>
+        </transformation>
+
+        <resource type="download" name="BrowseProjectTip.js" location="com/atlassian/jira/ext/calendar/resources/js/BrowseProjectTip.js"/>
+
+        <context>atl.general</context>
+    </web-resource>
+
+</atlassian-plugin>
