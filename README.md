@@ -6,3 +6,6 @@ jira-calendar-plugin-7.0.1-MRADDON.jar
 
 File for Jira 8.x
 jira-calendar-plugin-8.0.1-MRADDON.jar
+
+Original repo from Atlassian:
+https://bitbucket.org/atlassian/jira-calendar-plugin/src/master/
